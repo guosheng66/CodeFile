@@ -1,0 +1,47 @@
+      ret = fd2;
+
+        goto out1;
+    }
+
+    /* 读取源文件1KB数据到buff中 */
+    ret = read(fd1, buff, sizeof(buff));
+    if (-1 == ret)
+    {
+        perror("fail to read");
+        goto out2;
+    }
+
+    ret = 0;
+
+out1:
+    close(fd1); //关闭目标文件
+    return ret;
+
+out2:
+    close(fd2); //关闭目标文件
+    return ret;
+
+    return ret;
+}
+#include "linklist.h"
+
+/****************************************
+ * 函数名：CreateList
+ * 功能：创建一个链表
+ * 参数：
+ *      缺省
+ * 返回值：
+ *      成功返回创建的链表
+ *      失败返回空表H
+ * 注意事项：无
+ ****************************************/
+linklist CreateList()
+{
+    linklist H = NULL; //创建一个链表变量
+
+    H = (linklist)malloc(sizeof(listnode)); //为链表创建申请空间
+                                            //强制类型转换，因为malloc返回的是void *类型的指针
+    /* 链表内存申请失败打印失败信息并返回H */
+    if (H == NULL)
+    {
+        printf
