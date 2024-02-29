@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
     /* 绑定地址信息 */
     recvaddr.sin_family = AF_INET;
     recvaddr.sin_port = htons(50000);
-    recvaddr.sin_addr.s_addr = inet_addr("192.168.3.255");
+    recvaddr.sin_addr.s_addr = inet_addr("192.168.3.108");
     ret = bind(sockfd, (struct sockaddr *)&recvaddr, sizeof(recvaddr));
     if (-1 == ret)
     {

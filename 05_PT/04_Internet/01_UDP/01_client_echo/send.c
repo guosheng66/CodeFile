@@ -16,11 +16,11 @@ int main(int argc, char const *argv[])
         return -1;        
     }
     
-    setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR | SO_BROADCAST,&on,sizeof(on)); //权限设置
+   //setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR | SO_BROADCAST,&on,sizeof(on)); //权限设置
 
     recvaddr.sin_family = AF_INET;
     recvaddr.sin_port = htons(50000);
-    recvaddr.sin_addr.s_addr = inet_addr("192.168.3.255");
+    recvaddr.sin_addr.s_addr = inet_addr("192.168.3.108");
 
     /* 向对方发送内容 */
     nsize = sendto(sockfd, tmpbuff, strlen(tmpbuff), 0, (struct sockaddr*)&recvaddr, sizeof(recvaddr));
