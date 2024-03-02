@@ -9,6 +9,7 @@
         "socket.h": "c",
         "inet.h": "c",
         "stat.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "log.h": "c"
     }
 }

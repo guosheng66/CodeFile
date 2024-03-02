@@ -1,12 +1,12 @@
 OBJ := minishell
 OBJS += Main.c
-OBJS += Termianl.c
-OBJS += Command.c
+OBJS += Terminal.c
 OBJS += Log.c
+OBJS += Command.c
 
 $(OBJ):$(OBJS)
 	gcc $^ -o $@
 
-.PHONY
+.PHONY:
 clean:
 	rm $(OBJ)
