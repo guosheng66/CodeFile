@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Server: nginx
+Date: Thu, 07 Mar 2024 08:56:41 GMT
+Content-Type: application/json; charset=utf-8;
+Transfer-Encoding: chunked
+Connection: keep-alive
+Access-Control-Allow-Origin: *
+
+206
+{"success":"1","result":{"weaid":"316","days":"2024-03-07","week":"星期四","cityno":"xian","citynm":"西安","cityid":"101110101","temperature":"13℃/0℃","temperature_curr":"14℃","humidity":"19%","aqi":"96","weather":"晴","weather_curr":"晴","weather_icon":"http://api.k780.com/upload/weather/d/0.gif","weather_icon1":"","wind":"西北风","winp":"2级","temp_high":"13","temp_low":"0","temp_curr":"14","humi_high":"0","humi_low":"0","weatid":"1","weatid1":"","windid":"7","winpid":"2","weather_iconid":"0"}}
+0
+

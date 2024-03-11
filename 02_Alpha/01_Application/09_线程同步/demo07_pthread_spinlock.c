@@ -4,25 +4,25 @@
 #include <unistd.h>
 #include <string.h>
 
-static pthread_mutex_t mutex;
+static pthread_spinlock_t spin; //定义自旋锁
 static int g_count = 0;
-static int loops = 0;
+static int loops;
 
 static void *new_thread_start(void *arg)
 {
     int loops = *((int *)arg);
     int l_count = 0;
-    int j = 0;
-    
+    int j =0;
+
     for (j = 0; j < loops; j++)
     {
-        pthread_mutex_lock(&mutex);
+        pthread_spin_lock(&spin); //自旋锁上锁
 
         l_count = g_count;
         l_count++;
         g_count = l_count;
 
-        pthread_mutex_unlock(&mutex);
+        pthread_spin_unlock(&spin); //自旋锁上锁
     }
 
     return (void *)0;
@@ -44,20 +44,20 @@ int main(int argc, char const *argv[])
         loops = atoi(argv[1]);
     }
 
-    /* 初始化互斥锁 */
-    pthread_mutex_init(&mutex, NULL);
+    /* 初始化自旋锁 */
+    pthread_spin_init(&spin, PTHREAD_PROCESS_PRIVATE);
 
-    /* 创建两个新线程 */
+    /* 创建2个新线程 */
     ret = pthread_create(&tid1, NULL, new_thread_start, &loops);
     if (ret)
     {
-        fprintf(stderr, "pthread_create error: %s\n", strerror(ret));
+        fprintf(stderr, "pthread_create1 error: %s\n", strerror(ret));
         exit(-1);
     }
     ret = pthread_create(&tid2, NULL, new_thread_start, &loops);
     if (ret)
     {
-        fprintf(stderr, "pthread_create error: %s\n", strerror(ret));
+        fprintf(stderr, "pthread_create2 error: %s\n", strerror(ret));
         exit(-1);
     }
 
@@ -72,13 +72,13 @@ int main(int argc, char const *argv[])
     ret = pthread_join(tid2, NULL);
     if (ret)
     {
-        fprintf(stderr, "pthrad_join error: %s\n", strerror(ret));
+        fprintf(stderr, "pthread_join error: %s\n", strerror(ret));
         exit(-1);
     }
 
-    printf("g_conut = %d\n", g_count);
+    printf("g_count = %d\n", g_count);
 
-    pthread_mutex_destroy(&mutex);
+    pthread_spin_destroy(&spin);
     
     return 0;
 }
