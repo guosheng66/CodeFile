@@ -16,7 +16,7 @@ void ShowInterface(void)
     printf("+===========================+\n");
     printf("|1.today                    |\n");
     printf("|2.future day               |\n");
-    printf("|3.futureHour               |\n");
+    printf("|3.future hour              |\n");
     printf("|4.choose city              |\n");
     printf("|5.clear screen             |\n");
     printf("|6.exit                     |\n");
@@ -37,11 +37,12 @@ int ExecCommand(int cmd)
 {
     switch (cmd)
     {
-        case 1: TodayWeather(); break;
+        case 1: TodayWeather();  break;
         case 2: FutureWeather(); break;
-        case 4: ChooseCity(); break;
+        case 3: FutureHour(); break;
+        case 4: ChooseCity();    break;
         case 5: system("clear"); break;
-        case 6: MyExit(); break;
+        case 6: MyExit();        break;
         default: printf("提示：输入错误，请重新输入\n"); break;
     }
     
@@ -196,7 +197,7 @@ int TodayWeather(void)
 
     wtTemp1 = cJSON_GetObjectItem(TodayData, "wtTemp1")->valuestring;
     wtTemp2 = cJSON_GetObjectItem(TodayData, "wtTemp2")->valuestring;
-    printf("当日天气:温度: %s ~ %s°C    ", wtTemp2, wtTemp1);
+    printf("%s: 当日天气:温度: %s ~ %s°C    ", gCityNm ,wtTemp2, wtTemp1);
     wtNm1 = cJSON_GetObjectItem(TodayData, "wtNm1")->valuestring;
     printf("白天天气: %s    ", wtNm1);
     wtNm2 = cJSON_GetObjectItem(TodayData, "wtNm2")->valuestring;
@@ -206,8 +207,70 @@ int TodayWeather(void)
 }
 
 /************************************************
+ * 函数名：FutureHour
+ * 函数功能：获取未来几个小时的天气
+ * 参数：
+ *      缺省
+ * 返回值：
+ *      成功返回0
+ *      失败返回-1
+ * 注意事项：无
+ ************************************************/
+int FutureHour(void)
+{
+    int cnt = 0;
+    int i = 0;
+    cJSON *cJsonData = NULL;
+    cJSON *AllData = NULL;
+    cJSON *FutureHour = NULL;
+    cJSON *Data = NULL; //存储对象数组中的子对象
+    char *dateYmdh = NULL;
+    char *wtTemp = NULL;
+    char *wtWindNm = NULL;
+
+    HandleData();
+
+    cJsonData = cJSON_Parse(gCjsonData);
+    AllData = cJSON_GetObjectItem(cJsonData, "result");
+    FutureHour = cJSON_GetObjectItem(AllData, "futureHour");
+    cnt = cJSON_GetArraySize(FutureHour);   
+    
+    Data = FutureHour->child;
+    dateYmdh = cJSON_GetObjectItem(Data, "dateYmdh")->valuestring;
+    wtTemp = cJSON_GetObjectItem(Data, "wtTemp")->valuestring;
+    wtWindNm = cJSON_GetObjectItem(Data, "wtWindNm")->valuestring;
+    printf("%s: %s: 温度: %s    风向: %s\n", gCityNm, dateYmdh, wtTemp, wtWindNm);
+
+    Data = Data->next;
+    dateYmdh = cJSON_GetObjectItem(Data, "dateYmdh")->valuestring;
+    wtTemp = cJSON_GetObjectItem(Data, "wtTemp")->valuestring;
+    wtWindNm = cJSON_GetObjectItem(Data, "wtWindNm")->valuestring;
+    printf("%s: %s: 温度: %s    风向: %s\n", gCityNm, dateYmdh, wtTemp, wtWindNm);
+
+    Data = Data->next;
+    dateYmdh = cJSON_GetObjectItem(Data, "dateYmdh")->valuestring;
+    wtTemp = cJSON_GetObjectItem(Data, "wtTemp")->valuestring;
+    wtWindNm = cJSON_GetObjectItem(Data, "wtWindNm")->valuestring;
+    printf("%s: %s: 温度: %s    风向: %s\n", gCityNm, dateYmdh, wtTemp, wtWindNm);
+
+    Data = Data->next;
+    dateYmdh = cJSON_GetObjectItem(Data, "dateYmdh")->valuestring;
+    wtTemp = cJSON_GetObjectItem(Data, "wtTemp")->valuestring;
+    wtWindNm = cJSON_GetObjectItem(Data, "wtWindNm")->valuestring;
+    printf("%s: %s: 温度: %s    风向: %s\n", gCityNm, dateYmdh, wtTemp, wtWindNm);
+
+    Data = Data->next;
+    dateYmdh = cJSON_GetObjectItem(Data, "dateYmdh")->valuestring;
+    wtTemp = cJSON_GetObjectItem(Data, "wtTemp")->valuestring;
+    wtWindNm = cJSON_GetObjectItem(Data, "wtWindNm")->valuestring;
+    printf("%s: %s: 温度: %s    风向: %s\n", gCityNm, dateYmdh, wtTemp, wtWindNm);
+
+    return 0;
+}
+
+/************************************************
  * 函数名：FutureWeather
- * 函数功能：获取未来天气
+ * 函数功能：获取未来几天的天气
  * 参数：
  *      缺省
  * 返回值：
@@ -223,7 +286,7 @@ int FutureWeather(void)
     cJSON *AllData = NULL;
     cJSON *FutureData = NULL;
     cJSON *Data = NULL; //存储对象数组中的子对象
-    char *arr = NULL;
+    char *dateYmd = NULL;
     char *wtNm1 = NULL;
     char *wtNm2 = NULL;
     char *wtTemp1 = NULL;
@@ -235,9 +298,30 @@ int FutureWeather(void)
     AllData = cJSON_GetObjectItem(cJsonData, "result");
     FutureData = cJSON_GetObjectItem(AllData, "futureday");
     cnt = cJSON_GetArraySize(FutureData);   
+    
     Data = FutureData->child;
+    dateYmd = cJSON_GetObjectItem(Data, "dateYmd")->valuestring;
+    wtTemp1 = cJSON_GetObjectItem(Data, "wtTemp1")->valuestring;
+    wtTemp2 = cJSON_GetObjectItem(Data, "wtTemp2")->valuestring;
+    printf("%s: %s: 温度: %s ~ %s\n", gCityNm ,dateYmd, wtTemp1, wtTemp2);
 
-    printf("%s", cJSON_GetObjectItem(Data, "dateYmd")->valuestring);
+    Data = Data->next;
+    dateYmd = cJSON_GetObjectItem(Data, "dateYmd")->valuestring;
+    wtTemp1 = cJSON_GetObjectItem(Data, "wtTemp1")->valuestring;
+    wtTemp2 = cJSON_GetObjectItem(Data, "wtTemp2")->valuestring;
+    printf("%s: %s: 温度: %s ~ %s\n", gCityNm ,dateYmd, wtTemp1, wtTemp2);
+
+    Data = Data->next;
+    dateYmd = cJSON_GetObjectItem(Data, "dateYmd")->valuestring;
+    wtTemp1 = cJSON_GetObjectItem(Data, "wtTemp1")->valuestring;
+    wtTemp2 = cJSON_GetObjectItem(Data, "wtTemp2")->valuestring;
+    printf("%s: %s: 温度: %s ~ %s\n", gCityNm ,dateYmd, wtTemp1, wtTemp2);
+
+    Data = Data->next;
+    dateYmd = cJSON_GetObjectItem(Data, "dateYmd")->valuestring;
+    wtTemp1 = cJSON_GetObjectItem(Data, "wtTemp1")->valuestring;
+    wtTemp2 = cJSON_GetObjectItem(Data, "wtTemp2")->valuestring;
+    printf("%s: %s: 温度: %s ~ %s\n", gCityNm ,dateYmd, wtTemp1, wtTemp2);
 
     return 0;
 }

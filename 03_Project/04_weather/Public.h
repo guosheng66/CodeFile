@@ -22,5 +22,6 @@ extern int HandleData(void);
 extern void MyExit(void);
 extern int ChooseCity(void);
 extern int FutureWeather(void);
+extern int FutureHour(void);
 
 #endif
