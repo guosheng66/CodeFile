@@ -14,6 +14,15 @@
         "iostream": "cpp",
         "fcntl.h": "c",
         "ip.h": "c",
-        "epoll.h": "c"
+        "epoll.h": "c",
+        "public.h": "c",
+        "*.tcc": "c",
+        "deque": "c",
+        "forward_list": "c",
+        "list": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "system_error": "c"
     }
 }

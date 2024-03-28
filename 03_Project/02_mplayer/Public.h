@@ -12,32 +12,36 @@
 #include <dirent.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <stdarg.h>
 
 /* 日志文件记录路径 */
-#define MPLAYER_LOGFILE_PATH    "./mplayer_err.log"
+#define MPLAYER_LOGFILE_PATH                "./mplayer_err.log"
 
 /* mplayer命令管道路径 */
-#define MPLAYER_FIFO_PATH       "/tmp/myfifo"
+#define MPLAYER_FIFO_PATH                   "/tmp/mplayer_fifo"
 
 /* 媒体目录路径 */
-#define MPLAYER_MEDIADIR_PATH      "/home/gs/视频"
+#define MPLAYER_MEDIADIR_PATH               "/home/gs/视频"
 
 /* 播放列表最大允许存放媒体个数 */
-#define MPLAYER_MEDIALIST_MAXLEN   128
+#define MPLAYER_MEDIALIST_MAXLEN            128
+
+/* 日志文件路径 */
+#define LOG_PATH                            "./Log"
 
 /* 界面选项类型 */
 typedef struct __menu_opt__
 {
     int id;            //界面选项编号
     char content[256]; //界面选项显示字符串
-    int (*pfun)(void); //界面选项对应的函数接口
+    int (*pFun)(void); //界面选项对应的函数接口（操作函数指针，指向返回类型为整数的函数）
 }MenuOpt_t;
 
 /* 播放列表 */
 typedef struct __media_list__
 {
-    char medialist[MPLAYER_MEDIALIST_MAXLEN][128]; //播放列表
-    int curmediacnt;                               //当前媒体个数
+    char medialist[MPLAYER_MEDIALIST_MAXLEN][128]; //播放文件列表
+    int CurMediaCnt;                               //当前媒体文件个数
 }MediaList_t;
 
 /* mplayer工作状态 */
@@ -59,9 +63,9 @@ typedef enum __mplayer_speed__
 /* mplayer播放模式 */
 typedef enum __mplayer_mode__
 {
-    MPLAYER_MODE_SINGLE, //循环播放
+    MPLAYER_MODE_LOOP,   //循环播放
     MPLAYER_MODE_ORDER,  //顺序播放
-    MPLAYER_MODE_RANDOM, //随即播放
+    MPLAYER_MODE_RANDOM, //随机播放
 }MplayerMode_en;
 
 /* 播放状态 */
@@ -74,18 +78,21 @@ typedef struct __media_stat__
 }MediaStat_t;
 
 extern int MenuShow(void);
+extern int MenuShow(void);
 extern int MenuChoose(int *pNum);
-extern int MenuExecCommand(int cmd);
-extern int LogInit(const char *pLogFilePath);
-extern int LogWrite(const char *pStr);
-extern int LogDeInit(void);
+extern int ExecCommand(int cmd);
+
 extern int IsMediaFile(char *pFileName);
 extern int LoadMediaFile(const char *pDirName);
 extern int ShowMediaList(void);
 extern int PlayMedia(char *pMediaPath);
-extern int Stop(void);
-extern int Pause(void);
 extern int PlayPause(void);
-extern int Continue(void);
+extern int Stop(void);
+extern int PreMedia(void);
+extern int NextMedia(void);
+extern int AddSpeed(void);
+extern int SeekMedia(void);
+extern int SetMode(void);
+extern int Exit(void);
 
 #endif

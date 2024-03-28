@@ -1,13 +1,20 @@
 #include "Public.h"
+#include "Log.h"
 
-/* 管理播放列表全局结构 */
-MediaList_t gMediaList;
+int gMediaFileTotalNum = 0;
+int gCmd = 1;
+MediaList_t gMediaList; //管理播放列表全局结构
+MediaStat_t gMediaStat; //管理播放状态全局结构
 
-/* 管理播放状态全局结构 */
-MediaStat_t gMediaStat;
+pid_t pid;              //mplayer进程ID
 
-/* mplayer进程PID */
-pid_t pid;
+/****************************************
+ * 函数名：
+ * 功能：
+ * 参数：
+ * 返回值：
+ * 注意事项：无
+ ****************************************/
 
 /*******************************************
  * 函数名：IsMediaFile
@@ -57,7 +64,7 @@ int LoadMediaFile(const char *pDirName)
     dp = opendir(pDirName);
     if (NULL == dp)
     {
-        LogWrite("open media dir error, load media failed");
+        LogWrite(LOG_ERROR, "open media dir error, load media failed");
         return -1;
     }
 
@@ -68,21 +75,24 @@ int LoadMediaFile(const char *pDirName)
         {
             break;
         }
+
         if (pp->d_name[0] == '.')
         {
             continue;
         }
 
-        if (gMediaList.curmediacnt < MPLAYER_MEDIALIST_MAXLEN && IsMediaFile(pp->d_name))
+        if (gMediaList.CurMediaCnt < MPLAYER_MEDIALIST_MAXLEN && IsMediaFile(pp->d_name))
         {
-            sprintf(gMediaList.medialist[gMediaList.curmediacnt], "%s/%s", pDirName, pp->d_name);
-            gMediaList.curmediacnt++;
+            sprintf(gMediaList.medialist[gMediaList.CurMediaCnt], "%s", pp->d_name);
+            gMediaList.CurMediaCnt++;
         }
     }
 
+    gMediaFileTotalNum = gMediaList.CurMediaCnt;
+
     closedir(dp);
 
-    return gMediaList.curmediacnt;
+    return gMediaList.CurMediaCnt;
 }
 
 /********************************************
@@ -96,21 +106,20 @@ int LoadMediaFile(const char *pDirName)
 int ShowMediaList(void)
 {
     int i = 0;
-    int cmd = 0;
     int ret = 0;
-
-    printf("cnt: %d\n", gMediaList.curmediacnt);
-    for (i = 0; i < gMediaList.curmediacnt; i++)
-    {
-        printf("%2d.%s\n", i + 1, gMediaList.medialist[i]);
-    }
 
     while (1)
     {
+        /* 打印当前播放列表 */
+        for (i = 0; i < gMediaList.CurMediaCnt; i++)
+        {
+            printf("%2d.%s\n", i + 1, gMediaList.medialist[i]);
+        }
+
         printf("请选择播放文件，按0返回上一级\n");
-        scanf("%d", &cmd);
+        scanf("%d", &gCmd);
         getchar();
-        if (0 == cmd)
+        if (0 == gCmd)
         {
             break;
         }
@@ -120,13 +129,14 @@ int ShowMediaList(void)
             kill(pid, SIGKILL);
         }
 
-        ret = PlayMedia(gMediaList.medialist[cmd - 1]);
+        ret = PlayMedia(gMediaList.medialist[gCmd - 1]);
         if (0 == ret)
         {
-            gMediaStat.curmedianum = cmd -1;
-        }
-    }
+            gMediaStat.curmedianum = gCmd -1;
+        }  
 
+        system("clear");              
+    }
 
     return 0;
 }
@@ -144,24 +154,75 @@ int ShowMediaList(void)
 int PlayMedia(char *pMediaPath)
 {
     char fifopath[256] = {0};
+    char filepath[256] = {0};
+    
     pid = fork();
     if (-1 == pid)
     {
-        LogWrite("mplayer start error, play media failed");
+        LogWrite(LOG_ERROR, "mplayer start error, play media failed");
         return -1;
     }
-
     if (0 == pid)
     {
-        sprintf(fifopath, "file = %s", MPLAYER_FIFO_PATH);
+        sprintf(fifopath, "file=%s", MPLAYER_FIFO_PATH);
+        sprintf(filepath, "%s/%s", MPLAYER_MEDIADIR_PATH, pMediaPath);
 
         close(1);
         close(2);
-        execlp("mplayer", "mplayer", "-slave", "input", fifopath, pMediaPath, "-quiet", NULL);
+
+        execlp("mplayer", "mplayer", "-slave", "-input", fifopath, filepath, NULL);
+        LogWrite(LOG_ERROR, "child process exec mplayer(%s) failed\n", pMediaPath);
+        
+        exit(0);
     }
 
     gMediaStat.curstat = MPLAYER_STAT_PLAY;
     gMediaStat.curspeed = MPLAYER_SPEED_ONE;
+
+    LogWrite(LOG_MESSAGE, "Mplayer play %s success\n", pMediaPath);
+
+    return 0;
+}
+
+/*******************************************
+ * 函数名：PlayPause
+ * 功能：开始暂停
+ * 参数：缺省
+ * 返回值：
+ *      成功返回0
+ *      失败返回-1
+ * 注意事项：无
+ *******************************************/
+int PlayPause(void)
+{
+    int fd = 0;
+    int ret = 0;
+    
+    fd = open(MPLAYER_FIFO_PATH, O_RDWR);
+    if (-1 == fd)
+    {
+        LogWrite(LOG_ERROR, "open mplayer input fifo failed, can't pause mplayer\n");
+        return -1;
+    }
+
+    ret = write(fd, "pause\n", strlen("pause\n"));
+    if (-1 == ret)
+    {
+        LogWrite(LOG_ERROR, "write pause into fifo failed, can't pause mplayer\n");
+    }
+
+    close(fd);
+
+    if (gMediaStat.curstat == MPLAYER_STAT_PLAY)
+    {
+        gMediaStat.curstat = MPLAYER_STAT_PAUSE;
+        LogWrite(LOG_MESSAGE, "媒体状态切换为：暂停状态\n");
+    }
+    else if (gMediaStat.curstat == MPLAYER_STAT_PAUSE)
+    {
+        gMediaStat.curstat = MPLAYER_STAT_PLAY;
+        LogWrite(LOG_MESSAGE, "媒体状态切换为：播放状态\n");
+    }
 
     return 0;
 }
@@ -179,7 +240,129 @@ int Stop(void)
 {
     int fifd = 0;
 
-    if (gMediaStat.curstat == MPLAYER_STAT_FREE)
+    if (gMediaStat.curstat != MPLAYER_STAT_FREE)
+    {
+        kill(pid, SIGKILL);
+        gMediaStat.curstat = MPLAYER_STAT_FREE;
+        gMediaStat.curspeed = MPLAYER_SPEED_ONE;
+        LogWrite(LOG_MESSAGE, "停止播放媒体文件\n");
+    }
+
+    return 0;
+}
+
+/*******************************************
+ * 函数名：PreMedia
+ * 功能：播放上一个文件
+ * 参数：缺省
+ * 返回值：
+ *      成功返回0
+ * 注意事项：无
+ *******************************************/
+int PreMedia(void)
+{
+    int n = 0;
+    int ret = 0;
+    int random_number = 0;
+
+    if (gMediaStat.curstat == MPLAYER_STAT_PLAY)
+    {
+        kill(pid, SIGKILL);
+        gMediaStat.curstat = MPLAYER_STAT_FREE;
+    }
+    
+    /* 循环播放 || 顺序播放 */
+    if (gMediaStat.curmode == MPLAYER_MODE_LOOP || gMediaStat.curmode == MPLAYER_MODE_ORDER)
+    {
+        gCmd = gCmd - 1;
+        
+        if (gCmd < 0)
+        {
+            gCmd = gMediaList.CurMediaCnt - 1; 
+        }
+
+        PlayMedia(gMediaList.medialist[gCmd]);
+    }
+    else if (gMediaStat.curmode == MPLAYER_MODE_RANDOM)
+    {
+        srand(time(NULL));
+        random_number = rand() % gMediaList.CurMediaCnt;
+        ret = PlayMedia(gMediaList.medialist[random_number]);        
+        if (0 == ret)
+        {
+            gMediaStat.curmedianum = n;
+        }
+    }
+
+    printf("按任意键返回上一层\n");
+    getchar();
+
+    return 0;
+}
+
+/*******************************************
+ * 函数名：NextMedia
+ * 功能：播放下一个文件
+ * 参数：缺省
+ * 返回值：
+ *      成功返回0
+ * 注意事项：无
+ *******************************************/
+int NextMedia(void)
+{
+    int n = 0;
+    int ret = 0;
+    int random_number = 0;
+
+    if (gMediaStat.curstat == MPLAYER_STAT_PLAY)
+    {
+        kill(pid, SIGKILL);
+        gMediaStat.curstat = MPLAYER_STAT_FREE;
+    }
+    
+    /* 循环播放 || 顺序播放 */
+    if (gMediaStat.curmode == MPLAYER_MODE_LOOP || gMediaStat.curmode == MPLAYER_MODE_ORDER)
+    {
+        gCmd = gCmd + 1;
+        
+        if (gCmd == (gMediaFileTotalNum))
+        {
+            gCmd = 0; 
+        }
+
+        PlayMedia(gMediaList.medialist[gCmd]);
+    }
+    else if (gMediaStat.curmode == MPLAYER_MODE_RANDOM)
+    {
+        srand(time(NULL));
+        random_number = rand() % gMediaList.CurMediaCnt;
+        ret = PlayMedia(gMediaList.medialist[random_number]);        
+        if (0 == ret)
+        {
+            gMediaStat.curmedianum = n;
+        }
+    }
+
+    printf("按任意键返回上一层\n");
+    getchar();
+
+    return 0;
+}
+
+/*******************************************
+ * 函数名：AddSpeed
+ * 功能：快进
+ * 参数：缺省
+ * 返回值：
+ *      成功返回0
+ *      失败返回-1
+ * 注意事项：无
+ *******************************************/
+int AddSpeed(void)
+{
+    int fifd = 0;
+
+    if (gMediaStat.curstat != MPLAYER_STAT_PLAY)
     {
         return 0;
     }
@@ -187,135 +370,128 @@ int Stop(void)
     fifd = open(MPLAYER_FIFO_PATH, O_RDWR);
     if (-1 == fifd)
     {
-        LogWrite("open mplayer input fifo error, stop media failed");
+        LogWrite(LOG_ERROR, "open mplayer input fifo error, add media speed failed");
         return -1;
     }
 
-/* 写入暂停信号 */
-#if 0
-    write(fifd, "pause\n", 6);
-#endif
-    
+    if (gMediaStat.curspeed == MPLAYER_SPEED_ONE)
+    {
+        write(fifd, "speed_set 2\n", 12);
+        gMediaStat.curspeed = MPLAYER_SPEED_TWO;
+        printf("当前播放速度：快进 ✖ 2\n");
+        LogWrite(LOG_MESSAGE, "快进 ✖ 2\n");
+    }
+    else if (gMediaStat.curspeed == MPLAYER_SPEED_TWO)
+    {
+        write(fifd, "speed_set 4\n", 12);
+        gMediaStat.curspeed = MPLAYER_SPEED_FOUR;
+        printf("当前播放速度：快进 ✖ 4\n");
+        LogWrite(LOG_MESSAGE, "快进 ✖ 4\n");
+    }
+    else if (gMediaStat.curspeed == MPLAYER_SPEED_FOUR)
+    {
+        write(fifd, "speed_set 1\n", 12);
+        gMediaStat.curspeed = MPLAYER_SPEED_ONE;
+        printf("当前播放速度：快进 ✖ 8\n");
+        LogWrite(LOG_MESSAGE, "快进 ✖ 1\n");
+    }
 
+    close(fifd);
+    
+    printf("按任意键返回上一层\n");
+    getchar();
+
+    return 0;
+}
+
+/*******************************************
+ * 函数名：SeekMedia
+ * 功能：定位当前播放进度
+ * 参数：缺省
+ * 返回值：
+ *      成功返回0
+ * 注意事项：无
+ *******************************************/
+int SeekMedia(void)
+{
+    int fifd = 0;
+	int n = 0;
+    int len = 0;
+    char buffer[1024] = {0};
+	char gCmdbuff[128] = {0};
+
+	if (gMediaStat.curstat != MPLAYER_STAT_PLAY)
+	{
+		return 0;
+	}
+
+	fifd = open(MPLAYER_FIFO_PATH, O_RDWR);
+	if (-1 == fifd)
+	{
+		LogWrite(LOG_ERROR, "open mplayer input fifo error, seek media failed");
+		return -1;
+	}
+
+	printf("请定位:s");
+	scanf("%d", &n);
+
+	sprintf(gCmdbuff, "seek %d 2\n", n);
+	write(fifd, gCmdbuff, strlen(gCmdbuff));
+
+	close(fifd); 
+
+    return 0;
+}
+
+/*******************************************
+ * 函数名：SetMode
+ * 功能：设置播放模式
+ * 参数：缺省
+ * 返回值：
+ *      成功返回0
+ * 注意事项：无
+ *******************************************/
+int SetMode(void)
+{
+    int cmd = 0;
+
+    if (gMediaStat.curmode == MPLAYER_MODE_LOOP)
+    {
+        printf("always");
+        gMediaStat.curmode = MPLAYER_MODE_ORDER;
+        LogWrite(LOG_MESSAGE, "播放模式切换为：顺序播放\n");
+        printf("当前模式：顺序播放\n");
+    }
+    else if (gMediaStat.curmode == MPLAYER_MODE_ORDER)
+    {
+        gMediaStat.curmode = MPLAYER_MODE_RANDOM;
+        LogWrite(LOG_MESSAGE, "播放模式切换为：随机播放\n");
+        printf("当前模式：随机播放\n");
+    }
+    else if (gMediaStat.curmode == MPLAYER_MODE_RANDOM)
+    {
+        gMediaStat.curmode = MPLAYER_MODE_LOOP;
+        LogWrite(LOG_MESSAGE, "播放模式切换为：循环播放\n");
+        printf("当前模式：循环播放\n");
+    }
+    
+    printf("按任意键返回上一层");
+    getchar();
+    
+    return 0;
+}
+
+/*******************************************
+ * 函数名：Exit
+ * 功能：退出程序
+ * 参数：缺省
+ * 返回值：
+ *      成功返回0
+ * 注意事项：无
+ *******************************************/
+int Exit(void)
+{
     kill(pid, SIGKILL);
-    close(fifd);
 
-    gMediaStat.curstat = MPLAYER_STAT_FREE;
-    gMediaStat.curspeed = MPLAYER_SPEED_ONE;
-
-
-    return 0;
-}
-
-/*******************************************
- * 函数名：Pause
- * 功能：暂停
- * 参数：缺省
- * 返回值：
- *      成功返回0
- *      失败返回-1
- * 注意事项：无
- *******************************************/
-int Pause(void)
-{
-    int fifd = 0;
-
-    fifd = open(MPLAYER_FIFO_PATH, O_RDWR);
-    if (-1 == fifd)
-    {
-        LogWrite("open mplayer input fifo error, pause media failed");
-        return -1;
-    }
-
-    write(fifd, "pause\n", 6);
-
-    close(fifd);
-    gMediaStat.curstat = MPLAYER_STAT_PAUSE;
-
-    return 0;
-}
-
-
-/*******************************************
- * 函数名：PlayPause
- * 功能：开始暂停
- * 参数：缺省
- * 返回值：
- *      成功返回0
- * 注意事项：无
- *******************************************/
-int PlayPause(void)
-{
-    int ret = 0;
-    int n = 0;
-
-    if (gMediaStat.curstat == MPLAYER_STAT_PLAY)
-    {
-        Pause();
-    }
-    else if (gMediaStat.curstat == MPLAYER_STAT_PAUSE)
-    {
-        Continue();
-    }
-    else if (gMediaStat.curstat == MPLAYER_STAT_FREE)
-    {
-        if (gMediaStat.curmode == MPLAYER_MODE_SINGLE)
-        {
-            PlayMedia(gMediaList.medialist[gMediaStat.curmedianum]);
-        }
-        else if (gMediaStat.curmode == MPLAYER_MODE_ORDER)
-        {
-            if (gMediaStat.curmedianum + 1 > gMediaList.curmediacnt)
-            {
-                printf("播放列表到达末尾\n");
-                return 0;
-            }
-
-            ret = PlayMedia(gMediaList.medialist[gMediaStat.curmedianum + 1]);
-            if (0 == ret)
-            {
-                gMediaStat.curmedianum++;
-            }
-        }
-        else if (gMediaStat.curmode == MPLAYER_MODE_RANDOM)
-        {
-            n = rand() % gMediaList.curmediacnt;
-            ret = PlayMedia(gMediaList.medialist[n]);
-            if (0 == ret)
-            {
-                gMediaStat.curmedianum = n;
-            }
-        }
-    }
-
-    return 0;
-}
-
-/*******************************************
- * 函数名：Continue
- * 功能：继续播放
- * 参数：缺省
- * 返回值：
- *      成功返回0
- *      失败返回-1
- * 注意事项：无
- *******************************************/
-int Continue(void)
-{
-    int fifd = 0;
-    
-    fifd = open(MPLAYER_FIFO_PATH, O_RDWR);
-    if (-1 == fifd)
-    {
-        LogWrite("open mplayer input fifo error, continue media failed");
-        return -1;
-    }
-
-    write(fifd, "pause\n", 6);
-    
-    close(fifd);
-
-    gMediaStat.curstat = MPLAYER_STAT_PLAY;
-    
     return 0;
 }

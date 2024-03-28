@@ -1,4 +1,4 @@
-OBJ := Mplayer
+OBJ := mplayer
 OBJS += Main.c
 OBJS += Menu.c
 OBJS += Mplayer.c
