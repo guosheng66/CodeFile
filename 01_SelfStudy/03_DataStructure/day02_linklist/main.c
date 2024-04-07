@@ -9,8 +9,8 @@ int main(int argc, char const *argv[])
 {
     // InsertTailTest();
     // InsertTest();
-    // DeleteTest();
-    FreeTest();
+    DeleteTest();
+    // FreeTest();
 
     return 0;
 }

@@ -9,8 +9,8 @@ int main(int argc, char const *argv[])
 {
     // InsertTest();
     // DeleteTest();
-    // MergeTest();
-    PurgeTest();
+    MergeTest();
+    // PurgeTest();
 
     return 0;
 }
@@ -141,6 +141,7 @@ void MergeTest()
     MergeList(L1, L2);      //合并两个线性表
     printf("数据合并后的线性表L1：\n");
     ShowList(L1);           //打印线性表
+	ShowList(L2);
 
     /* 释放线性表申请的空间 */
     FreeList(L1);
