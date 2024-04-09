@@ -23,6 +23,8 @@
         "string": "c",
         "unordered_map": "c",
         "vector": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "linkstack.h": "c",
+        "tree.h": "c"
     }
 }
